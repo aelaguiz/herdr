@@ -101,6 +101,13 @@ impl HeadlessServer {
                 "updated",
                 None,
             ),
+            // Custom keeps the frozen endpoint codec untouched: older remote
+            // shells render it as a generic immediate notification.
+            crate::app::state::ToastKind::AtCapacity => (
+                protocol::SemanticNotificationKind::Custom,
+                "hit model capacity",
+                Some(protocol::SemanticNotificationSound::Request),
+            ),
         };
         let workspace_id = workspace.id.clone();
         let tab_id = crate::workspace::public_tab_id_for_number(&workspace_id, tab_number);
@@ -178,6 +185,7 @@ impl HeadlessServer {
             crate::app::state::ToastKind::NeedsAttention => "needs attention",
             crate::app::state::ToastKind::Finished => "finished",
             crate::app::state::ToastKind::UpdateInstalled => "updated",
+            crate::app::state::ToastKind::AtCapacity => "hit model capacity",
         };
         let workspace_label =
             ws.display_name_from(&self.app.state.terminals, &self.app.terminal_runtimes);

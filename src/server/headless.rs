@@ -3231,6 +3231,7 @@ impl HeadlessServer {
                             crate::app::state::ToastKind::NeedsAttention => "needs attention",
                             crate::app::state::ToastKind::Finished => "finished",
                             crate::app::state::ToastKind::UpdateInstalled => "updated",
+                            crate::app::state::ToastKind::AtCapacity => "hit model capacity",
                         };
                         let workspace_label = self.app.state.workspaces[*ws_idx].display_name_from(
                             &self.app.state.terminals,

@@ -163,6 +163,7 @@ pub enum AgentStatus {
     Blocked,
     Done,
     Unknown,
+    AtCapacity,
 }
 
 pub(crate) fn default_true() -> bool {

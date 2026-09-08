@@ -218,6 +218,7 @@ enum ManifestState {
     Idle,
     Working,
     Blocked,
+    AtCapacity,
     Unknown,
 }
 
@@ -227,6 +228,7 @@ impl From<ManifestState> for AgentState {
             ManifestState::Idle => AgentState::Idle,
             ManifestState::Working => AgentState::Working,
             ManifestState::Blocked => AgentState::Blocked,
+            ManifestState::AtCapacity => AgentState::AtCapacity,
             ManifestState::Unknown => AgentState::Unknown,
         }
     }
@@ -824,6 +826,7 @@ pub fn agent_state_label(state: AgentState) -> &'static str {
         AgentState::Idle => "idle",
         AgentState::Working => "working",
         AgentState::Blocked => "blocked",
+        AgentState::AtCapacity => "at_capacity",
         AgentState::Unknown => "unknown",
     }
 }
@@ -962,6 +965,16 @@ fn validate_manifest(manifest: &AgentManifest) -> Result<(), String> {
             return Err(format!(
                 "rule {} uses top_non_empty_lines but min_engine_version is below {}",
                 rule.id, TOP_NON_EMPTY_LINES_ENGINE_VERSION
+            ));
+        }
+        if rule.state == Some(ManifestState::AtCapacity)
+            && manifest
+                .min_engine_version
+                .is_some_and(|version| version < AT_CAPACITY_STATE_ENGINE_VERSION)
+        {
+            return Err(format!(
+                "rule {} uses state at_capacity but min_engine_version is below {}",
+                rule.id, AT_CAPACITY_STATE_ENGINE_VERSION
             ));
         }
         validate_rule_gate(rule, &mut complexity)
@@ -1331,6 +1344,8 @@ fn region_count(spec: &str, name: &str) -> Option<usize> {
 }
 
 const TOP_NON_EMPTY_LINES_ENGINE_VERSION: u32 = 3;
+/// Engine version that introduced the `at_capacity` manifest state.
+const AT_CAPACITY_STATE_ENGINE_VERSION: u32 = 4;
 const MAX_TOP_REGION_LINE_COUNT: usize = u16::MAX as usize;
 
 fn top_region_count(spec: &str) -> Option<usize> {

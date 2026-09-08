@@ -244,7 +244,9 @@ pub(super) fn prompt_agent(
     let prompt_activity_observed = prompt_started_working
         || matches!(
             prompted.agent_status,
-            crate::api::schema::AgentStatus::Working | crate::api::schema::AgentStatus::Blocked
+            crate::api::schema::AgentStatus::Working
+                | crate::api::schema::AgentStatus::Blocked
+                | crate::api::schema::AgentStatus::AtCapacity
         );
     let prompt_state_change_seq = prompted.state_change_seq;
     let until = agent_wait_statuses(wait.until);
@@ -517,6 +519,7 @@ fn prompt_activity_statuses() -> Vec<crate::api::schema::AgentStatus> {
     vec![
         crate::api::schema::AgentStatus::Working,
         crate::api::schema::AgentStatus::Blocked,
+        crate::api::schema::AgentStatus::AtCapacity,
     ]
 }
 
@@ -528,6 +531,7 @@ fn agent_wait_statuses(
             crate::api::schema::AgentStatus::Idle,
             crate::api::schema::AgentStatus::Done,
             crate::api::schema::AgentStatus::Blocked,
+            crate::api::schema::AgentStatus::AtCapacity,
         ]
     } else {
         until

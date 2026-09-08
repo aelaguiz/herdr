@@ -202,9 +202,11 @@ fn status_icon(
             StatusIndicatorStyle::Dots,
             AgentStatus::Working | AgentStatus::Blocked | AgentStatus::Done,
         ) => "●",
+        (StatusIndicatorStyle::Dots, AgentStatus::AtCapacity) => "◍",
         (StatusIndicatorStyle::Dots, AgentStatus::Idle) => "○",
         (StatusIndicatorStyle::Dots, AgentStatus::Unknown) => "·",
         (StatusIndicatorStyle::Symbols, AgentStatus::Blocked) => "×",
+        (StatusIndicatorStyle::Symbols, AgentStatus::AtCapacity) => "⚠",
         (StatusIndicatorStyle::Symbols, AgentStatus::Working) => "◐",
         (StatusIndicatorStyle::Symbols, AgentStatus::Done) => "✓",
         (StatusIndicatorStyle::Symbols, AgentStatus::Idle) => "○",
@@ -219,7 +221,8 @@ fn status_dot(status: crate::api::schema::AgentStatus) -> &'static str {
 fn status_priority(status: crate::api::schema::AgentStatus) -> u8 {
     use crate::api::schema::AgentStatus;
     match status {
-        AgentStatus::Blocked => 4,
+        AgentStatus::Blocked => 5,
+        AgentStatus::AtCapacity => 4,
         AgentStatus::Done => 3,
         AgentStatus::Working => 2,
         AgentStatus::Idle => 1,
@@ -232,6 +235,7 @@ fn status_text(status: crate::api::schema::AgentStatus) -> &'static str {
     match status {
         AgentStatus::Working => "working",
         AgentStatus::Blocked => "blocked",
+        AgentStatus::AtCapacity => "at_capacity",
         AgentStatus::Done => "done",
         AgentStatus::Idle => "idle",
         AgentStatus::Unknown => "unknown",
@@ -246,6 +250,7 @@ fn status_color(
     match status {
         AgentStatus::Working => palette.yellow,
         AgentStatus::Blocked => palette.red,
+        AgentStatus::AtCapacity => palette.peach,
         AgentStatus::Done => palette.teal,
         AgentStatus::Idle => palette.green,
         AgentStatus::Unknown => palette.overlay0,

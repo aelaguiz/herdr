@@ -1264,3 +1264,105 @@ fn codex_osc_working_beats_weak_blocker_screen() {
         Some("osc_title_working")
     );
 }
+
+// --- Codex model capacity ---
+
+const CODEX_AT_CAPACITY_SCREEN: &str = "\
+⚠ MCP startup incomplete (failed: posthog, sentry)
+
+› tell me a joke
+
+• Working on it.
+
+⚠ Selected model is at capacity. Please try a different model.
+
+
+› Ask Codex to do anything
+
+  gpt-6-astra xhigh · Context 17% left · Respond to greeting · psagentspace · Main [default]
+";
+
+#[test]
+fn codex_model_at_capacity_warning_above_live_prompt_is_at_capacity() {
+    let result = explain(Agent::Codex, CODEX_AT_CAPACITY_SCREEN);
+    assert_eq!(result.state, AgentState::AtCapacity);
+    assert_eq!(
+        result.matched_rule.as_ref().map(|r| r.id.as_str()),
+        Some("model_at_capacity")
+    );
+    assert!(!result.visible_blocker);
+}
+
+#[test]
+fn codex_model_at_capacity_warning_matches_when_wrapped() {
+    let screen = "\
+⚠ Selected model is at capacity. Please try a different
+  model.
+
+› Ask Codex to do anything
+";
+    let result = explain(Agent::Codex, screen);
+    assert_eq!(result.state, AgentState::AtCapacity);
+}
+
+#[test]
+fn codex_model_at_capacity_warning_yields_to_later_output() {
+    let screen = "\
+⚠ Selected model is at capacity. Please try a different model.
+
+› try again
+
+• Sure, here is a joke.
+
+› Ask Codex to do anything
+";
+    let result = explain(Agent::Codex, screen);
+    assert_eq!(result.state, AgentState::Idle);
+    assert!(result.matched_rule.is_none());
+    assert_eq!(
+        result.fallback_reason.as_deref(),
+        Some(DEFAULT_KNOWN_AGENT_IDLE_FALLBACK)
+    );
+}
+
+#[test]
+fn codex_model_at_capacity_warning_loses_to_working_title() {
+    let result = osc_explain(Agent::Codex, CODEX_AT_CAPACITY_SCREEN, "⠋ codex", "");
+    assert_eq!(result.state, AgentState::Working);
+    assert_eq!(
+        result.matched_rule.as_ref().map(|r| r.id.as_str()),
+        Some("osc_title_working")
+    );
+}
+
+#[test]
+fn codex_model_at_capacity_warning_beats_idle_title() {
+    let result = osc_explain(Agent::Codex, CODEX_AT_CAPACITY_SCREEN, "codex", "");
+    assert_eq!(result.state, AgentState::AtCapacity);
+}
+
+#[test]
+fn at_capacity_state_requires_engine_four_when_declared() {
+    let template = |engine: u32| {
+        format!(
+            r#"
+id = "codex"
+version = "1"
+min_engine_version = {engine}
+
+[[rules]]
+id = "capacity"
+state = "at_capacity"
+contains = ["at capacity"]
+"#
+        )
+    };
+
+    assert!(parse_manifest(&template(3)).is_err());
+    assert!(parse_manifest(&template(4)).is_ok());
+}
+
+#[test]
+fn at_capacity_state_label_round_trips() {
+    assert_eq!(agent_state_label(AgentState::AtCapacity), "at_capacity");
+}

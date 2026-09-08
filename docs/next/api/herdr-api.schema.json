@@ -75,7 +75,8 @@
             "working",
             "blocked",
             "done",
-            "unknown"
+            "unknown",
+            "at_capacity"
           ],
           "type": "string"
         },
@@ -1372,7 +1373,8 @@
             "working",
             "blocked",
             "done",
-            "unknown"
+            "unknown",
+            "at_capacity"
           ],
           "type": "string"
         },
@@ -6399,7 +6401,8 @@
             "working",
             "blocked",
             "done",
-            "unknown"
+            "unknown",
+            "at_capacity"
           ],
           "type": "string"
         },
@@ -6829,7 +6832,8 @@
             "working",
             "blocked",
             "done",
-            "unknown"
+            "unknown",
+            "at_capacity"
           ],
           "type": "string"
         },

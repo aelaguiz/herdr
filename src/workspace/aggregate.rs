@@ -49,7 +49,8 @@ impl Tab {
 
 fn pane_attention_priority(state: AgentState, seen: bool) -> u8 {
     match (state, seen) {
-        (AgentState::Blocked, _) => 4,
+        (AgentState::Blocked, _) => 5,
+        (AgentState::AtCapacity, _) => 4,
         (AgentState::Idle, false) => 3,
         (AgentState::Working, _) => 2,
         (AgentState::Idle, true) => 1,
@@ -128,6 +129,36 @@ mod tests {
 
         assert_eq!(state, AgentState::Working);
         assert!(seen);
+    }
+
+    #[test]
+    fn aggregate_state_at_capacity_beats_done_but_not_blocked() {
+        let mut ws = Workspace::test_new("test");
+        let id2 = ws.test_split(Direction::Horizontal);
+        let root_id = ws.tabs[0]
+            .panes
+            .keys()
+            .find(|id| **id != id2)
+            .copied()
+            .unwrap();
+        let mut terminals = HashMap::new();
+        let mut root_terminal = terminal_for_pane(&ws, root_id);
+        root_terminal.state = AgentState::Idle;
+        terminals.insert(root_terminal.id.clone(), root_terminal);
+        let mut second_terminal = terminal_for_pane(&ws, id2);
+        second_terminal.state = AgentState::AtCapacity;
+        terminals.insert(second_terminal.id.clone(), second_terminal);
+        ws.tabs[0].panes.get_mut(&root_id).unwrap().seen = false;
+
+        let (state, _) = ws.aggregate_state(&terminals);
+        assert_eq!(state, AgentState::AtCapacity);
+
+        terminals
+            .get_mut(&ws.terminal_id(root_id).unwrap().clone())
+            .unwrap()
+            .state = AgentState::Blocked;
+        let (state, _) = ws.aggregate_state(&terminals);
+        assert_eq!(state, AgentState::Blocked);
     }
 
     #[test]

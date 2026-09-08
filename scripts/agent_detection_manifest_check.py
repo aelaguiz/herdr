@@ -34,7 +34,8 @@ RULE_KEYS = {
     "line_regex",
 }
 GATE_KEYS = {"all", "any", "not", "contains", "regex", "line_regex"}
-STATES = {"idle", "working", "blocked", "unknown"}
+STATES = {"idle", "working", "blocked", "at_capacity", "unknown"}
+AT_CAPACITY_STATE_ENGINE_VERSION = 4
 REGION_RE = re.compile(
     r"^(whole_recent|whole_recent_without_current_prompt_marker|after_last_prompt_marker|"
     r"before_current_prompt_marker|current_prompt_block_marker|after_current_prompt_block_marker|"
@@ -53,14 +54,14 @@ MAX_MATCHERS_PER_GATE = 32
 MAX_TOTAL_MATCHERS = 1024
 MAX_MATCHER_CHARS = 512
 
-# Keep engine-2 clients on the OSC-capable manifest until an engine-3 release
-# can consume top_non_empty_lines. Remove this entry when the distribution
-# publishes the bundled Grok manifest.
+# Keep engine-3 clients on the previous Codex manifest until an engine-4
+# release can parse the at_capacity state. Remove this entry when the
+# distribution publishes the bundled Codex manifest.
 STAGED_PUBLISHED_MANIFESTS = {
-    "grok": (
-        "2026.07.16.2",
-        "2026.07.16.1",
-        "1f35b3271a96cf830c64bed78751619bfd8013c277c0d7c0f999b7a433895f28",
+    "codex": (
+        "2026.09.08.1",
+        "2026.09.05.1",
+        "c9780984fec679a5a1a91f2018ba486a74d971e5837324a2a1d95047178d5a22",
     ),
 }
 
@@ -158,6 +159,11 @@ def validate_manifest(path: Path, engine_version: int) -> dict:
     complexity = {"gates": 0, "matchers": 0}
     for index, rule in enumerate(rules):
         validate_rule(path, index, rule, complexity)
+        if rule.get("state") == "at_capacity" and min_engine < AT_CAPACITY_STATE_ENGINE_VERSION:
+            raise CheckError(
+                f"{path}: rule {rule.get('id')} uses state at_capacity but min_engine_version "
+                f"is below {AT_CAPACITY_STATE_ENGINE_VERSION}"
+            )
         region = rule.get("region", "whole_recent")
         if region.startswith("top_non_empty_lines(") and min_engine < 3:
             raise CheckError(

@@ -220,3 +220,28 @@ mod mobile;
 mod mouse_selection;
 mod popup_focus_projection;
 mod startup_overlays;
+
+#[test]
+fn at_capacity_status_has_distinct_icon_color_and_priority() {
+    use crate::config::StatusIndicatorStyle;
+    assert_eq!(
+        status_icon(AgentStatus::AtCapacity, StatusIndicatorStyle::Symbols),
+        "⚠"
+    );
+    assert_eq!(
+        status_icon(AgentStatus::AtCapacity, StatusIndicatorStyle::Dots),
+        "◍"
+    );
+    let palette = Palette::catppuccin();
+    assert_eq!(
+        status_color(AgentStatus::AtCapacity, &palette),
+        palette.peach
+    );
+    assert_ne!(
+        status_color(AgentStatus::AtCapacity, &palette),
+        status_color(AgentStatus::Blocked, &palette)
+    );
+    assert_eq!(status_text(AgentStatus::AtCapacity), "at_capacity");
+    assert!(status_priority(AgentStatus::Blocked) > status_priority(AgentStatus::AtCapacity));
+    assert!(status_priority(AgentStatus::AtCapacity) > status_priority(AgentStatus::Done));
+}

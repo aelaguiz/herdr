@@ -6090,6 +6090,87 @@ fn notification_show_api_includes_sound_in_semantic_event() {
 }
 
 #[test]
+fn background_at_capacity_forwards_custom_semantic_notification_with_request_sound() {
+    let mut server = test_headless_server();
+    let background = crate::workspace::Workspace::test_new("background");
+    let pane_id = background.tabs[0].root_pane;
+    let foreground = crate::workspace::Workspace::test_new("foreground");
+    server.app.state.workspaces = vec![background, foreground];
+    server.app.state.ensure_test_terminals();
+    server.app.state.active = Some(1);
+    server.app.state.selected = 1;
+    server.app.state.mode = crate::app::Mode::Terminal;
+    server.app.state.toast_config.delivery = crate::config::ToastDelivery::Herdr;
+    server.app.state.toast_config.delay_seconds = 0;
+    server.app.state.sound.enabled = true;
+
+    assert!(
+        server.handle_internal_event_with_forwarding(AppEvent::StateChanged {
+            pane_id,
+            agent: Some(crate::detect::Agent::Codex),
+            state: crate::detect::AgentState::Working,
+            visible_blocker: false,
+            visible_working: true,
+            process_exited: false,
+            observed_at: Instant::now(),
+        })
+    );
+
+    let (shell_tx, shell_control, _shell_frames) = test_client_writer();
+    server.clients.insert(
+        1,
+        ClientConnection::new_with_mode(
+            ClientConnectionMode::ClientShell,
+            (80, 24),
+            crate::kitty_graphics::HostCellSize::default(),
+            1,
+            RenderEncoding::SemanticFrame,
+            Some(shell_tx),
+        ),
+    );
+    while shell_control
+        .recv_timeout(Duration::from_millis(20))
+        .is_ok()
+    {}
+
+    assert!(
+        server.handle_internal_event_with_forwarding(AppEvent::StateChanged {
+            pane_id,
+            agent: Some(crate::detect::Agent::Codex),
+            state: crate::detect::AgentState::AtCapacity,
+            visible_blocker: false,
+            visible_working: false,
+            process_exited: false,
+            observed_at: Instant::now(),
+        })
+    );
+
+    let deadline = Instant::now() + Duration::from_millis(500);
+    let notification = loop {
+        let message = shell_control
+            .recv_timeout(deadline.saturating_duration_since(Instant::now()))
+            .expect("semantic at-capacity notification");
+        if let ServerMessage::SemanticNotification(notification) = read_server_message(message) {
+            break notification;
+        }
+    };
+    assert_eq!(
+        notification.kind,
+        protocol::SemanticNotificationKind::Custom
+    );
+    assert_eq!(notification.title, "codex hit model capacity");
+    assert_eq!(
+        notification.sound,
+        Some(protocol::SemanticNotificationSound::Request)
+    );
+    assert_eq!(notification.agent.as_deref(), Some("codex"));
+    assert_eq!(
+        notification.workspace_id.as_deref(),
+        Some(server.app.state.workspaces[0].id.as_str())
+    );
+}
+
+#[test]
 fn startup_idle_does_not_forward_completion() {
     let mut server = test_headless_server();
     let workspace = crate::workspace::Workspace::test_new("active");

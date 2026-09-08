@@ -61,6 +61,10 @@ Blocked detection is deliberately strict for screen-manifest agents. Herdr only 
 
 This means unusual new agent prompts may initially show as `idle` instead of `blocked` until Herdr learns that screen shape. The misclassification affects only the visible status and waits. It should not make Herdr send input or take destructive action.
 
+## Model capacity
+
+When Codex cannot get capacity for the selected model it prints `⚠ Selected model is at capacity. Please try a different model.` as a transcript line and returns to its prompt. Herdr reports that pane as `at_capacity` while the warning is the last output above the live prompt. The state has its own sidebar icon and color, rolls up to the tab and Space like `blocked`, and sends a notification with the needs-input sound so you can retry or switch models. It clears as soon as the next turn starts or any other output appears.
+
 ## Detection manifests
 
 Bundled manifests live inside Herdr. Herdr also checks herdr.dev for remote manifest updates and applies valid per-agent rule updates automatically without requiring a Herdr restart. Remote manifests are stored in Herdr's state directory. Set `[update] manifest_check = false` to disable background remote manifest checks.

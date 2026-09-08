@@ -1,7 +1,7 @@
 id = "codex"
-version = "2026.09.05.1"
-min_engine_version = 3
-updated_at = "2026-09-05T00:00:00Z"
+version = "2026.09.08.1"
+min_engine_version = 4
+updated_at = "2026-09-08T00:00:00Z"
 
 [[rules]]
 id = "osc_title_blocked"
@@ -75,6 +75,17 @@ any = [
   { contains = ["do you want to"], any = [{ contains = ["yes"] }, { contains = ["❯"] }] },
   { contains = ["would you like to"], any = [{ contains = ["yes"] }, { contains = ["❯"] }] },
 ]
+
+# Codex prints this yellow warning as a persistent transcript line and returns
+# to the idle composer after it. Only treat it as live evidence while it is the
+# last thing above the current prompt; a new user turn or working spinner
+# replaces it.
+[[rules]]
+id = "model_at_capacity"
+state = "at_capacity"
+priority = 700
+region = "before_current_prompt_marker"
+regex = ['(?s)⚠ Selected model is at capacity\.\s+Please try a different\s+model\.\s*\z']
 
 [[rules]]
 id = "screen_working_fallback"

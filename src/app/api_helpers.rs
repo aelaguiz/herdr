@@ -1,6 +1,7 @@
 pub(super) fn tab_attention_priority(state: crate::detect::AgentState, seen: bool) -> u8 {
     match (state, seen) {
-        (crate::detect::AgentState::Blocked, _) => 4,
+        (crate::detect::AgentState::Blocked, _) => 5,
+        (crate::detect::AgentState::AtCapacity, _) => 4,
         (crate::detect::AgentState::Idle, false) => 3,
         (crate::detect::AgentState::Working, _) => 2,
         (crate::detect::AgentState::Idle, true) => 1,
@@ -102,6 +103,7 @@ pub(super) fn pane_agent_status(
         (crate::detect::AgentState::Idle, true) => crate::api::schema::AgentStatus::Idle,
         (crate::detect::AgentState::Working, _) => crate::api::schema::AgentStatus::Working,
         (crate::detect::AgentState::Blocked, _) => crate::api::schema::AgentStatus::Blocked,
+        (crate::detect::AgentState::AtCapacity, _) => crate::api::schema::AgentStatus::AtCapacity,
         (crate::detect::AgentState::Unknown, _) => crate::api::schema::AgentStatus::Unknown,
     }
 }

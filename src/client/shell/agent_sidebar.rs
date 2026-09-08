@@ -390,6 +390,7 @@ fn sidebar_status_text(status: crate::api::schema::AgentStatus) -> &'static str 
     use crate::api::schema::AgentStatus;
     match status {
         AgentStatus::Blocked => "blocked",
+        AgentStatus::AtCapacity => "at capacity",
         AgentStatus::Done => "done",
         AgentStatus::Working => "working",
         AgentStatus::Idle | AgentStatus::Unknown => "idle",

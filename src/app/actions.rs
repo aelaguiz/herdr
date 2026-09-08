@@ -72,7 +72,7 @@ pub fn notification_sound_for_state_change(
     }
 
     match new_state {
-        AgentState::Blocked => Some(crate::sound::Sound::Request),
+        AgentState::Blocked | AgentState::AtCapacity => Some(crate::sound::Sound::Request),
         AgentState::Idle
             if is_background_completion_transition(prev_state, new_state)
                 && !suppress_active_tab_notifications =>
@@ -95,7 +95,7 @@ pub fn notification_sound_for_state_change_with_agent_labels(
     }
 
     match new_state {
-        AgentState::Blocked => Some(crate::sound::Sound::Request),
+        AgentState::Blocked | AgentState::AtCapacity => Some(crate::sound::Sound::Request),
         AgentState::Idle
             if is_completion_transition_parts(
                 prev_state,
@@ -119,7 +119,7 @@ fn notification_sound_for_effective_state_change(
     }
 
     match change.state {
-        AgentState::Blocked => Some(crate::sound::Sound::Request),
+        AgentState::Blocked | AgentState::AtCapacity => Some(crate::sound::Sound::Request),
         AgentState::Idle
             if is_completion_transition(change) && !suppress_active_tab_notifications =>
         {
@@ -142,6 +142,7 @@ pub fn notification_toast_for_state_change_with_agent_labels(
 
     match new_state {
         AgentState::Blocked => Some(ToastKind::NeedsAttention),
+        AgentState::AtCapacity => Some(ToastKind::AtCapacity),
         AgentState::Idle
             if is_completion_transition_parts(
                 prev_state,
@@ -166,6 +167,7 @@ fn notification_toast_for_effective_state_change(
 
     match change.state {
         AgentState::Blocked => Some(ToastKind::NeedsAttention),
+        AgentState::AtCapacity => Some(ToastKind::AtCapacity),
         AgentState::Idle if is_completion_transition(change) => Some(ToastKind::Finished),
         _ => None,
     }
@@ -200,6 +202,7 @@ fn toast_event_text(kind: ToastKind) -> &'static str {
         ToastKind::NeedsAttention => "needs attention",
         ToastKind::Finished => "finished",
         ToastKind::UpdateInstalled => "updated",
+        ToastKind::AtCapacity => "hit model capacity",
     }
 }
 
@@ -208,7 +211,7 @@ fn sound_for_toast_kind(
     suppress_active_tab_notifications: bool,
 ) -> Option<crate::sound::Sound> {
     match kind {
-        ToastKind::NeedsAttention => Some(crate::sound::Sound::Request),
+        ToastKind::NeedsAttention | ToastKind::AtCapacity => Some(crate::sound::Sound::Request),
         ToastKind::Finished if !suppress_active_tab_notifications => {
             Some(crate::sound::Sound::Done)
         }
@@ -2004,9 +2007,10 @@ impl AppState {
             .clone()
             .or_else(|| change.previous_agent_label.clone())?;
         let known_agent = change.known_agent.or(change.previous_known_agent);
-        let kind = client_notification_kind.unwrap_or(match sound {
-            Some(crate::sound::Sound::Request) => ToastKind::NeedsAttention,
-            Some(crate::sound::Sound::Done) | None => ToastKind::Finished,
+        let kind = client_notification_kind.unwrap_or(match (change.state, sound) {
+            (AgentState::AtCapacity, _) => ToastKind::AtCapacity,
+            (_, Some(crate::sound::Sound::Request)) => ToastKind::NeedsAttention,
+            (_, Some(crate::sound::Sound::Done) | None) => ToastKind::Finished,
         });
         let workspace_id = self.workspaces[ws_idx].id.clone();
 
@@ -3117,6 +3121,49 @@ mod tests {
     fn waiting_sound_plays_even_in_active_workspace() {
         assert_eq!(
             notification_sound_for_state_change(true, AgentState::Working, AgentState::Blocked),
+            Some(crate::sound::Sound::Request)
+        );
+    }
+
+    #[test]
+    fn at_capacity_sound_plays_even_in_active_workspace() {
+        assert_eq!(
+            notification_sound_for_state_change(true, AgentState::Working, AgentState::AtCapacity),
+            Some(crate::sound::Sound::Request)
+        );
+        assert_eq!(
+            notification_sound_for_state_change(
+                false,
+                AgentState::AtCapacity,
+                AgentState::AtCapacity
+            ),
+            None
+        );
+    }
+
+    #[test]
+    fn background_at_capacity_sets_capacity_toast_with_request_sound() {
+        let mut state = app_with_workspaces(&["active", "background"]);
+        state.active = Some(0);
+        state.toast_config.delivery = crate::config::ToastDelivery::Herdr;
+        let bg_pane_id = *state.workspaces[1].panes.keys().next().unwrap();
+
+        state.handle_app_event(AppEvent::StateChanged {
+            pane_id: bg_pane_id,
+            agent: Some(Agent::Codex),
+            state: AgentState::AtCapacity,
+            visible_blocker: false,
+            visible_working: false,
+            process_exited: false,
+            observed_at: std::time::Instant::now(),
+        });
+
+        let toast = state.toast.as_ref().unwrap();
+        assert_eq!(toast.kind, ToastKind::AtCapacity);
+        assert_eq!(toast.title, "codex hit model capacity");
+        assert_eq!(toast.context, "background · 2");
+        assert_eq!(
+            sound_for_toast_kind(ToastKind::AtCapacity, true),
             Some(crate::sound::Sound::Request)
         );
     }

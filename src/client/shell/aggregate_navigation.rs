@@ -105,7 +105,10 @@ pub(super) fn navigator_rows(
 ) -> Vec<ClientNavigatorRow> {
     let query = navigator.query.trim().to_lowercase();
     let filter = |status| match navigator.filter {
-        Some(ClientNavigatorFilter::Blocked) => status == crate::api::schema::AgentStatus::Blocked,
+        Some(ClientNavigatorFilter::Blocked) => matches!(
+            status,
+            crate::api::schema::AgentStatus::Blocked | crate::api::schema::AgentStatus::AtCapacity
+        ),
         Some(ClientNavigatorFilter::Working) => status == crate::api::schema::AgentStatus::Working,
         Some(ClientNavigatorFilter::Idle) => status == crate::api::schema::AgentStatus::Idle,
         Some(ClientNavigatorFilter::Done) => status == crate::api::schema::AgentStatus::Done,
