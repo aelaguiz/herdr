@@ -43,6 +43,7 @@ Agent states are:
 | State | Meaning |
 | --- | --- |
 | `blocked` | The agent needs input, approval, or a decision. |
+| `at_capacity` | The agent stopped because its selected model is at capacity. Retry or switch models. |
 | `working` | The agent is actively running. |
 | `done` | The agent finished and you have not looked at it yet. |
 | `idle` | The agent is finished or waiting and has been seen. |

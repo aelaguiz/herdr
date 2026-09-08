@@ -183,11 +183,12 @@ fn render_header_button(
             .bg(palette.surface0)
             .add_modifier(Modifier::BOLD),
     );
-    if snapshot
-        .agents
-        .iter()
-        .any(|agent| agent.agent_status == crate::api::schema::AgentStatus::Blocked)
-    {
+    if snapshot.agents.iter().any(|agent| {
+        matches!(
+            agent.agent_status,
+            crate::api::schema::AgentStatus::Blocked | crate::api::schema::AgentStatus::AtCapacity
+        )
+    }) {
         put_text(
             buffer,
             area.right().saturating_sub(1),
@@ -242,6 +243,7 @@ fn render_agent_summary(
     use crate::api::schema::AgentStatus;
     let counts = [
         (AgentStatus::Blocked, "blocked"),
+        (AgentStatus::AtCapacity, "at capacity"),
         (AgentStatus::Done, "done"),
         (AgentStatus::Working, "working"),
         (AgentStatus::Idle, "idle"),
@@ -258,7 +260,7 @@ fn render_agent_summary(
         )
     });
     let total = counts.iter().map(|(_, _, count)| count).sum::<usize>();
-    let pending = counts[..3].iter().map(|(_, _, count)| count).sum::<usize>();
+    let pending = counts[..4].iter().map(|(_, _, count)| count).sum::<usize>();
     if total == 0 {
         put_text(
             buffer,
@@ -295,6 +297,7 @@ fn render_agent_summary(
         }
         let symbol = match (config.status_indicators, status) {
             (crate::config::StatusIndicatorStyle::Dots, AgentStatus::Blocked) => Some("◉"),
+            (crate::config::StatusIndicatorStyle::Dots, AgentStatus::AtCapacity) => Some("◍"),
             (crate::config::StatusIndicatorStyle::Dots, AgentStatus::Done) => Some("●"),
             (crate::config::StatusIndicatorStyle::Dots, _) => None,
             _ => Some(status_icon(status, config.status_indicators)),

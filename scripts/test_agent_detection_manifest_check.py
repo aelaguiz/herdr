@@ -29,18 +29,18 @@ path = "{path}"
 '''
 
 
-def staged_grok_dirs(root: Path) -> tuple[Path, Path]:
+def staged_codex_dirs(root: Path) -> tuple[Path, Path]:
     bundled = root / "bundled"
     published = root / "published"
     bundled.mkdir()
     published.mkdir()
-    (bundled / "grok.toml").write_bytes(
-        (check.DEFAULT_BUNDLED_DIR / "grok.toml").read_bytes()
+    (bundled / "codex.toml").write_bytes(
+        (check.DEFAULT_BUNDLED_DIR / "codex.toml").read_bytes()
     )
-    (published / "grok.toml").write_bytes(
-        (check.DEFAULT_PUBLISHED_DIR / "grok.toml").read_bytes()
+    (published / "codex.toml").write_bytes(
+        (check.DEFAULT_PUBLISHED_DIR / "codex.toml").read_bytes()
     )
-    (published / "index.toml").write_text(catalog("grok", "grok.toml"))
+    (published / "index.toml").write_text(catalog("codex", "codex.toml"))
     return bundled, published
 
 
@@ -96,20 +96,31 @@ class AgentDetectionManifestCheckTests(unittest.TestCase):
 
     def test_allows_explicitly_staged_published_manifest(self):
         with tempfile.TemporaryDirectory() as tmp:
-            bundled, website = staged_grok_dirs(Path(tmp))
+            bundled, website = staged_codex_dirs(Path(tmp))
 
-            bundled_manifests = check.load_manifest_dir(bundled, engine_version=3)
-            check.validate_catalog(website, bundled_manifests, engine_version=3)
+            bundled_manifests = check.load_manifest_dir(bundled, engine_version=4)
+            check.validate_catalog(website, bundled_manifests, engine_version=4)
 
     def test_rejects_mutated_staged_published_manifest(self):
         with tempfile.TemporaryDirectory() as tmp:
-            bundled, website = staged_grok_dirs(Path(tmp))
-            with (website / "grok.toml").open("a") as manifest_file:
+            bundled, website = staged_codex_dirs(Path(tmp))
+            with (website / "codex.toml").open("a") as manifest_file:
                 manifest_file.write("\n# unexpected mutation\n")
 
-            bundled_manifests = check.load_manifest_dir(bundled, engine_version=3)
+            bundled_manifests = check.load_manifest_dir(bundled, engine_version=4)
             with self.assertRaisesRegex(check.CheckError, "lower than bundled"):
-                check.validate_catalog(website, bundled_manifests, engine_version=3)
+                check.validate_catalog(website, bundled_manifests, engine_version=4)
+
+    def test_rejects_at_capacity_state_below_engine_four(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            bundled = Path(tmp) / "bundled"
+            bundled.mkdir()
+            content = manifest("codex", "2026.06.10.1").replace(
+                'state = "idle"', 'state = "at_capacity"'
+            )
+            (bundled / "codex.toml").write_text(content)
+            with self.assertRaisesRegex(check.CheckError, "at_capacity"):
+                check.load_manifest_dir(bundled, engine_version=4)
 
     def test_rejects_unlisted_published_manifest_lag_for_new_engine(self):
         with tempfile.TemporaryDirectory() as tmp:

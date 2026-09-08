@@ -709,6 +709,7 @@ pub enum ToastKind {
     NeedsAttention,
     Finished,
     UpdateInstalled,
+    AtCapacity,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -390,6 +390,7 @@ fn status_name(state: crate::detect::AgentState, seen: bool) -> String {
         (crate::detect::AgentState::Idle, true) => AgentStatus::Idle,
         (crate::detect::AgentState::Working, _) => AgentStatus::Working,
         (crate::detect::AgentState::Blocked, _) => AgentStatus::Blocked,
+        (crate::detect::AgentState::AtCapacity, _) => AgentStatus::AtCapacity,
         (crate::detect::AgentState::Unknown, _) => AgentStatus::Unknown,
     };
     match status {
@@ -398,6 +399,7 @@ fn status_name(state: crate::detect::AgentState, seen: bool) -> String {
         AgentStatus::Blocked => "blocked",
         AgentStatus::Done => "done",
         AgentStatus::Unknown => "unknown",
+        AgentStatus::AtCapacity => "at_capacity",
     }
     .to_string()
 }

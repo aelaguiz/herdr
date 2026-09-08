@@ -898,6 +898,7 @@ where
         "working" => crate::api::schema::AgentStatus::Working,
         "blocked" => crate::api::schema::AgentStatus::Blocked,
         "done" => crate::api::schema::AgentStatus::Done,
+        "at_capacity" => crate::api::schema::AgentStatus::AtCapacity,
         _ => crate::api::schema::AgentStatus::Unknown,
     })
 }
@@ -1720,6 +1721,24 @@ mod tests {
     use super::*;
     use ratatui::style::{Color, Modifier};
     use sha2::{Digest, Sha256};
+
+    #[test]
+    fn client_shell_agent_status_at_capacity_round_trips_through_json() {
+        let tab = ClientShellTab {
+            tab_id: "w1:t1".into(),
+            workspace_id: "w1".into(),
+            number: 1,
+            label: "main".into(),
+            custom_label: false,
+            zoomed: false,
+            focused: false,
+            agent_status: crate::api::schema::AgentStatus::AtCapacity,
+        };
+        let json = serde_json::to_string(&tab).unwrap();
+        assert!(json.contains("\"at_capacity\""), "{json}");
+        let decoded: ClientShellTab = serde_json::from_str(&json).unwrap();
+        assert_eq!(decoded, tab);
+    }
 
     fn encoded_sha256(value: &impl Serialize) -> String {
         let encoded = bincode::serde::encode_to_vec(value, bincode::config::standard()).unwrap();

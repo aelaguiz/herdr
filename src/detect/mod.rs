@@ -15,6 +15,9 @@ pub enum AgentState {
     Working,
     /// Agent needs human input and is blocked on a response.
     Blocked,
+    /// Agent stopped because the selected model is at capacity. A human must
+    /// retry or switch models before it can continue.
+    AtCapacity,
     /// Plain shell or unrecognized program.
     Unknown,
 }

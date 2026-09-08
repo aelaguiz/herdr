@@ -1958,7 +1958,7 @@ fn normalize_state_labels(
             let status = status.trim().to_ascii_lowercase();
             if !matches!(
                 status.as_str(),
-                "idle" | "working" | "blocked" | "done" | "unknown"
+                "idle" | "working" | "blocked" | "done" | "at_capacity" | "unknown"
             ) {
                 return Err(status);
             }
